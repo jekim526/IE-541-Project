@@ -198,5 +198,5 @@ def perform_GA_base(objc, knapsack_num, instance_settings, evoluion_general_para
     return best_ind, pop, g
 
 
-def perform_GA_better():
-    return
+# def perform_GA_better():
+#     return
