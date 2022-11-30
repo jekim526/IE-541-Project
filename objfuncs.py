@@ -8,8 +8,6 @@ Created on Fri Nov  4 11:44:15 2022
 import math
 import numpy as np
 
-# TODO item_value maybe not necessary
-
 ''' Punish '''
 
 
@@ -58,7 +56,7 @@ def total_weight(decision_matrix: np.ndarray,  # n*m (m:number of knapsack, n: n
     for k in range(decision_matrix.shape[1]):
         kth_decision = decision_matrix[:, k]
         total_weight += np.dot(kth_decision, item_weight)
-    return total_weight
+    return -total_weight
 
 
 ''' objf 3 '''
@@ -100,4 +98,4 @@ def objfuncs(decision_matrix: np.ndarray,  # n*m (m:number of knapsack, n: numbe
         total_profit += profit_sum
         total_weight += np.dot(kth_decision, item_weight)
         min_indiv_profit = min(min_indiv_profit, profit_sum)
-    return (total_profit, total_weight, min_indiv_profit)
+    return (total_profit, -total_weight, min_indiv_profit)

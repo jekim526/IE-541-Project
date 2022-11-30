@@ -1,3 +1,4 @@
+import math
 import random
 from deap import base
 from deap import creator
@@ -136,7 +137,7 @@ def GA_core(toolbox, pop, evolution_specify_parameters, PRINT):
     # Variable keeping track of the number of generations
     g = 0
     g_hold = 0
-    best_fit_sofar = -numpy.Infinity
+    best_fit_sofar = -math.inf
 
     # Begin the evolution
     while g_hold < STOP_GEN and g < MAX_GEN:
