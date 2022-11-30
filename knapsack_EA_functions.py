@@ -54,8 +54,8 @@ def objf_base(decision_matrix, objc, instance_settings, punish_factor=-100):
 
 def exam_feasibility(individual, instance_settings):
     result = []
-    item_weight = instance_setings[1]
-    capacities = instance_setings[3]
+    item_weight = instance_settings[1]
+    capacities = instance_settings[3]
     for k in range(individual.shape[1]):
         kth_knapsack = individual[:,k]
         weight = numpy.dot(kth_knapsack, item_weight)
