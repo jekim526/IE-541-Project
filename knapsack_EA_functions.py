@@ -98,10 +98,10 @@ def perform_GA_base(objc, knapsack_num, instance_settings, evoluion_general_para
     toolbox.register("select", tools.selTournament, tournsize=2)
 
     ''' the maximize covalue_case '''
-    maxx = 0
-    maxx = max(maxx,max(np.sum(joint_profit,axis = 1)))
-    maxx = max(maxx,max(np.sum(joint_profit,axis = 0)))
-    maxx
+    max_c = 0
+    max_c = max(max_c,max(numpy.sum(joint_profit,axis = 1)))
+    max_c = max(max_c,max(numpy.sum(joint_profit,axis = 0)))
+    max_i = max(item_value)
 
     # def objf_base(decision_matrix, objc, instance_settings, punish_factor=-100):
     toolbox.register("evaluate", objf_base, objc=objc, instance_settings=instance_settings, punish_factor=-100)
