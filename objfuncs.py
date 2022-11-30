@@ -118,7 +118,7 @@ def objfuncs(decision_matrix: np.ndarray,  # n*m (m:number of knapsack, n: numbe
         min_indiv_profit = min(min_indiv_profit, profit_sum)
     return total_profit, -total_weight, min_indiv_profit
 
-
+##
 def objf_weight(decision_matrix, objc_weight_vector, instance_settings, punish_factor=-100):
     item_value, item_weight, joint_profit, capacities = instance_settings
     obj_value_vector = np.array(objfuncs(decision_matrix, item_value, item_weight, joint_profit))
