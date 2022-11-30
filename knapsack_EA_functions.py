@@ -52,6 +52,19 @@ def objf_base(decision_matrix, objc, instance_settings, punish_factor=-100):
     punish_value = punish(decision_matrix, item_weight, capacities, punish_factor)
     return obj_value + punish_value
 
+def exam_feasibility(individual, instance_settings):
+    result = []
+    item_weight = instance_setings[1]
+    capacities = instance_setings[3]
+    for k in range(individual.shape[1]):
+        kth_knapsack = individual[:,k]
+        weight = numpy.dot(kth_knapsack, item_weight)
+        if weight > capacities[k]:
+            result.append(False)
+        else:
+            result.append(True)
+    return result
+
 
 def perform_GA_base(objc, knapsack_num, instance_settings, evoluion_general_parameters, evolution_specify_parameters,
                     PRINT=False, STABLE=True):
@@ -83,6 +96,13 @@ def perform_GA_base(objc, knapsack_num, instance_settings, evoluion_general_para
 
     ''' define select paradigm '''
     toolbox.register("select", tools.selTournament, tournsize=2)
+
+    ''' the maximize covalue_case '''
+    maxx = 0
+    maxx = max(maxx,max(np.sum(joint_profit,axis = 1)))
+    maxx = max(maxx,max(np.sum(joint_profit,axis = 0)))
+    maxx
+
     # def objf_base(decision_matrix, objc, instance_settings, punish_factor=-100):
     toolbox.register("evaluate", objf_base, objc=objc, instance_settings=instance_settings, punish_factor=-100)
 
@@ -178,7 +198,7 @@ def perform_GA_base(objc, knapsack_num, instance_settings, evoluion_general_para
     # return
     #   pop: the final round Population and the round
     #   g: the number of generation that reach the optimal
-    return pop, g
+    return best_ind, pop, g
 
 
 def perform_GA_better():
