@@ -122,6 +122,6 @@ def objfuncs(decision_matrix: np.ndarray,  # n*m (m:number of knapsack, n: numbe
 def objf_weight(decision_matrix, objc_weight_vector, instance_settings, punish_factor=-100):
     item_value, item_weight, joint_profit, capacities = instance_settings
     obj_value_vector = np.array(objfuncs(decision_matrix, item_value, item_weight, joint_profit))
-    obj_value = np.dot(obj_value_vector, objc_weight_vector)
+    obj_value = np.dot(np.squeeze(obj_value_vector), objc_weight_vector)
     punish_value = punish(decision_matrix, item_weight, capacities, punish_factor)
     return obj_value + punish_value

@@ -94,6 +94,7 @@ def perform_GA_base(objc, instance_settings, evoluion_general_parameters, evolut
         toolbox.register("evaluate", objf.objf_base, objc=objc, instance_settings=instance_settings,
                          punish_factor=-punish_factor)
     elif type(objc) == tuple:
+        objc = numpy.array(objc)
         toolbox.register("evaluate", objf.objf_weight, objc_weight_vector=objc, instance_settings=instance_settings,
                          punish_factor=-punish_factor)
     else:
