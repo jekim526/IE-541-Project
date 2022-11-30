@@ -73,10 +73,13 @@ def perform_GA_base(objc, knapsack_num, instance_settings, evoluion_general_para
     # evolution_general_parameters should be a tuple contains: {popsize, swap_prob, mute_prob}, in which:
     #    swap_prob  is independent probability for swap at each point in uniform crossover.
     #    mute_prob  is independent probability for each attribute to be flipped in flip-bit mutation.
+    #    punish_factor is value of punish_factor
     # evolution_specify_parameters should be a tuple contains: {CXPB, MUTPB},In which:
     #    CXPB  is the probability with which two individuals
     #          are crossed
     #    MUTPB is the probability for mutating an individual
+    #    MAX_GEN is the maximum generation threshold
+    #    STOP_GEN is the threshold of no progress generations
 
     # update the toolbox base on specified instances:
     item_value, item_weight, joint_profit, capacities = instance_settings
@@ -97,21 +100,16 @@ def perform_GA_base(objc, knapsack_num, instance_settings, evoluion_general_para
     ''' define select paradigm '''
     toolbox.register("select", tools.selTournament, tournsize=2)
 
-    ''' the maximize covalue_case '''
-    maxx = 0
-    maxx = max(maxx,max(np.sum(joint_profit,axis = 1)))
-    maxx = max(maxx,max(np.sum(joint_profit,axis = 0)))
-    maxx
-
-    # def objf_base(decision_matrix, objc, instance_settings, punish_factor=-100):
-    toolbox.register("evaluate", objf_base, objc=objc, instance_settings=instance_settings, punish_factor=-100)
 
     # update the toolbox base on specified evolution parameters:
-    popsize, swap_prob, mute_prob = evoluion_general_parameters
-    CXPB, MUTPB = evolution_specify_parameters
+    popsize, swap_prob, mute_prob, punish_factor = evoluion_general_parameters
+    CXPB, MUTPB, MAX_GEN, STOP_GEN = evolution_specify_parameters
     pop = toolbox.population(n=popsize)
     toolbox.register("mutate", mutUniformVec_free, indpb=mute_prob)  # Vanilla
     toolbox.register("mate", cxUniform_free, prob=swap_prob)  # Vanilla
+
+    # def objf_base(decision_matrix, objc, instance_settings, punish_factor=-100):
+    toolbox.register("evaluate", objf_base, objc=objc, instance_settings=instance_settings, punish_factor=-punish_factor)
 
     # --------- begin the evolution ----------
     if PRINT:
@@ -126,20 +124,19 @@ def perform_GA_base(objc, knapsack_num, instance_settings, evoluion_general_para
     fits = [ind.fitness.values[0] for ind in pop]
 
     # Variable keeping track of the number of generations
-    g = 0;
+    g = 0
     g_hold = 0
+    best_fit_sofar = -numpy.Infinity
 
     # Begin the evolution
-    while g_hold < 5 and g < 1000:
-        # # stop at the stable best population or stop at the first best individual
-        # if max(fits) >= optimal_value:  # reach the best individual
-        #     if STABLE:
-        #         g_hold += 1
-        #     else:
-        #         break
-        # else:
-        #     g_hold = 0
-
+    while g_hold < STOP_GEN and g < MAX_GEN:
+        # stop at the stable best population or stop at the first best individual
+        if max(fits) > best_fit_sofar:  # reach the best individual
+            best_fit_sofar = max(fits)
+        if max(fits) == best_fit_sofar:
+            g_hold += 1
+        else:
+            g_hold = 0
         # A new generation
         g += 1
         if PRINT:
