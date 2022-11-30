@@ -35,25 +35,6 @@ def mutUniformVec_free(individual, indpb):
     return individual,
 
 
-def objf_base(decision_matrix, objc, instance_settings, punish_factor=-100):
-    # instance_setings should be a tuple contains: {item_value, item_weight, joint_profit, capacities}
-    #                                                           capacities = {capacity1, capacity2, ...}
-    if objc == 1:
-        func = objf.total_profit
-    elif objc == 2:
-        func = objf.total_weight
-    elif objc == 3:
-        func = objf.min_indiv_profit
-    else:
-        print("wrong input obj")
-        return
-    punish = objf.punish
-    item_value, item_weight, joint_profit, capacities = instance_settings
-    obj_value = func(decision_matrix, item_value, item_weight, joint_profit)
-    punish_value = punish(decision_matrix, item_weight, capacities, punish_factor)
-    return obj_value + punish_value
-
-
 def exam_feasibility(individual, instance_settings):
     result = []
     item_weight = instance_settings[1]
@@ -72,7 +53,7 @@ def perform_GA_base(objc, instance_settings, evoluion_general_parameters, evolut
                     PRINT=False):
     # instance_setings should be a tuple contains: {item_value, item_weight, joint_profit, capacities}
     #                                                           capacities = {capacity1, capacity2, ...}
-    # evolution_general_parameters should be a tuple contains: {popsize, swap_prob, mute_prob}, in which:
+    # evolution_general_parameters should be a tuple contains: {popsize, swap_prob, mute_prob, punish_factor}, in which:
     #    swap_prob  is independent probability for swap at each point in uniform crossover.
     #    mute_prob  is independent probability for each attribute to be flipped in flip-bit mutation.
     #    punish_factor is value of punish_factor
@@ -109,9 +90,14 @@ def perform_GA_base(objc, instance_settings, evoluion_general_parameters, evolut
     toolbox.register("mate", cxUniform_free, prob=swap_prob)  # Vanilla
 
     # def objf_base(decision_matrix, objc, instance_settings, punish_factor=-100):
-    toolbox.register("evaluate", objf_base, objc=objc, instance_settings=instance_settings,
-                     punish_factor=-punish_factor)
-
+    if type(objc) == int:
+        toolbox.register("evaluate", objf.objf_base, objc=objc, instance_settings=instance_settings,
+                         punish_factor=-punish_factor)
+    elif type(objc) == tuple:
+        toolbox.register("evaluate", objf.objf_weight, objc_weight_vector=objc, instance_settings=instance_settings,
+                         punish_factor=-punish_factor)
+    else:
+        raise Exception('Incorrect input of objc')
     return GA_core(toolbox, pop, evolution_specify_parameters, PRINT)
 
 

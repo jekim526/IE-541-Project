@@ -70,11 +70,29 @@ def min_indiv_profit(decision_matrix: np.ndarray,  # n*m (m:number of knapsack, 
     min_indiv_profit = math.inf
     item_value = item_value.reshape(len(item_value), 1)
     for k in range(decision_matrix.shape[1]):
-        kth_decision = decision_matrix[:, k]   # 1*n
+        kth_decision = decision_matrix[:, k]  # 1*n
         indiv_sum = np.dot(kth_decision, item_value)
         joint_sum = np.dot(np.dot(kth_decision, joint_profit), kth_decision.T)
         min_indiv_profit = min(min_indiv_profit, indiv_sum + joint_sum)
     return min_indiv_profit
+
+
+def objf_base(decision_matrix, objc, instance_settings, punish_factor=-100):
+    # instance_setings should be a tuple contains: {item_value, item_weight, joint_profit, capacities}
+    #                                                           capacities = {capacity1, capacity2, ...}
+    if objc == 1:
+        func = total_profit
+    elif objc == 2:
+        func = total_weight
+    elif objc == 3:
+        func = min_indiv_profit
+    else:
+        print("wrong input obj")
+        return
+    item_value, item_weight, joint_profit, capacities = instance_settings
+    obj_value = func(decision_matrix, item_value, item_weight, joint_profit)
+    punish_value = punish(decision_matrix, item_weight, capacities, punish_factor)
+    return obj_value + punish_value
 
 
 ''' calculate all 3 objectives and return in a tuple '''
@@ -91,11 +109,19 @@ def objfuncs(decision_matrix: np.ndarray,  # n*m (m:number of knapsack, n: numbe
     item_value = item_value.reshape(len(item_value), 1)
     item_weight = item_value.reshape(len(item_weight), 1)
     for k in range(decision_matrix.shape[1]):
-        kth_decision = decision_matrix[:, k]   # 1*n
+        kth_decision = decision_matrix[:, k]  # 1*n
         indiv_sum = np.dot(kth_decision, item_value)
         joint_sum = np.dot(np.dot(kth_decision, joint_profit), kth_decision.T)
         profit_sum = indiv_sum + joint_sum
         total_profit += profit_sum
         total_weight += np.dot(kth_decision, item_weight)
         min_indiv_profit = min(min_indiv_profit, profit_sum)
-    return (total_profit, -total_weight, min_indiv_profit)
+    return total_profit, -total_weight, min_indiv_profit
+
+
+def objf_weight(decision_matrix, objc_weight_vector, instance_settings, punish_factor=-100):
+    item_value, item_weight, joint_profit, capacities = instance_settings
+    obj_value_vector = np.array(objfuncs(decision_matrix, item_value, item_weight, joint_profit))
+    obj_value = np.dot(obj_value_vector, objc_weight_vector)
+    punish_value = punish(decision_matrix, item_weight, capacities, punish_factor)
+    return obj_value + punish_value
