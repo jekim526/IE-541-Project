@@ -8,45 +8,8 @@ import sys
 
 sys.path.append("..")
 import objfuncs as objf
+import operators as op
 
-
-def rand_oneHotVector(length, empty_pb=0.3):
-    vec = numpy.zeros(length).astype(int)
-    if random.random() > empty_pb:
-        hot = random.randint(0, length - 1)
-        vec[hot] = 1
-    return vec
-
-
-def cxUniform_free(ind1, ind2, prob=0.1):
-    size = len(ind1)
-    for i in range(size):
-        if random.random() < prob:
-            ind1[i], ind2[i] = ind2[i].copy(), ind1[i].copy()
-    return ind1, ind2
-
-
-def mutUniformVec_free(individual, indpb):
-    item_num = individual.shape[0]
-    knapsack_num = individual.shape[1]
-    for i in range(item_num):
-        if random.random() < indpb:
-            individual[i] = rand_oneHotVector(knapsack_num)
-    return individual,
-
-
-def exam_feasibility(individual, instance_settings):
-    result = []
-    item_weight = instance_settings[1]
-    capacities = instance_settings[3]
-    for k in range(individual.shape[1]):
-        kth_knapsack = individual[:, k]
-        weight = numpy.dot(kth_knapsack, item_weight)
-        if weight > capacities[k]:
-            result.append(False)
-        else:
-            result.append(True)
-    return result
 
 
 def perform_GA_base(objc, instance_settings, evoluion_general_parameters, evolution_specify_parameters,
@@ -75,7 +38,7 @@ def perform_GA_base(objc, instance_settings, evoluion_general_parameters, evolut
     ''' initialize population '''
     toolbox = base.Toolbox()
     # Attribute generator
-    toolbox.register("attr_vector", rand_oneHotVector, NUM_KNAPSACK)
+    toolbox.register("attr_vector", op.rand_oneHotVector, NUM_KNAPSACK)
     # Structure initializers
     toolbox.register("individual", tools.initRepeat, creator.Individual, toolbox.attr_vector, NUM_ITEMS)
     toolbox.register("population", tools.initRepeat, list, toolbox.individual)
@@ -86,8 +49,8 @@ def perform_GA_base(objc, instance_settings, evoluion_general_parameters, evolut
     # update the toolbox base on specified evolution parameters:
     popsize, swap_prob, mute_prob, punish_factor = evoluion_general_parameters
     pop = toolbox.population(n=popsize)
-    toolbox.register("mutate", mutUniformVec_free, indpb=mute_prob)  # Vanilla
-    toolbox.register("mate", cxUniform_free, prob=swap_prob)  # Vanilla
+    toolbox.register("mutate", op.mutUniformVec_free, indpb=mute_prob)  # Vanilla
+    toolbox.register("mate", op.cxUniform_free, prob=swap_prob)  # Vanilla
 
     # def objf_base(decision_matrix, objc, instance_settings, punish_factor=-100):
     if type(objc) == int:
