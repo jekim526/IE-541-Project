@@ -52,7 +52,7 @@ def total_weight(decision_matrix: np.ndarray,  # n*m (m:number of knapsack, n: n
                  joint_profit: np.ndarray,  # n*n
                  ) -> float:
     total_weight = 0
-    item_weight = item_value.reshape(len(item_weight), 1)
+    item_weight = item_weight.reshape(len(item_weight), 1)
     for k in range(decision_matrix.shape[1]):
         kth_decision = decision_matrix[:, k]
         total_weight += np.dot(kth_decision, item_weight)
