@@ -69,14 +69,14 @@ def perform_GA_base(objc, instance_settings, evoluion_general_parameters, evolut
 #     return
 
 
-def GA_core(toolbox, pop, evolution_specify_parameters, PRINT):
+def GA_core(toolbox, pop, evolution_specify_parameters, PRINT, ELITISM = True):
     # update the toolbox base on specified evolution parameters:
     CXPB, MUTPB, MAX_GEN, STOP_GEN = evolution_specify_parameters
     # --------- begin the evolution ----------
     if PRINT:
         print("Start of evolution")
     # Evaluate the entire population
-    fitnesses = list(map(toolbox.evaluate, pop))  # TODO tobe check if 'list' can be deleted?
+    fitnesses = list(map(toolbox.evaluate, pop))
     for ind, fit in zip(pop, fitnesses):
         ind.fitness.values = fit
     if PRINT:
@@ -103,8 +103,14 @@ def GA_core(toolbox, pop, evolution_specify_parameters, PRINT):
         if PRINT:
             print("-- Generation %i --" % g)
 
+        # elitism preserve
+        elite_num = 0
+        if ELITISM:
+            elite_num = 5
+            elites = tools.selBest(pop, elite_num).copy()
+
         # Select the next generation individuals
-        offspring = toolbox.select(pop, len(pop))
+        offspring = toolbox.select(pop, len(pop) - elite_num)
         # Clone the selected individuals
         offspring = list(map(toolbox.clone, offspring))
 
@@ -134,6 +140,8 @@ def GA_core(toolbox, pop, evolution_specify_parameters, PRINT):
 
         # The population is entirely replaced by the offspring
         pop[:] = offspring
+        if ELITISM:
+            pop.extend(elites)
 
         # Gather all the fitnesses in one list and print the stats
         fits = [ind.fitness.values[0] for ind in pop]
