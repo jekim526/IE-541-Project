@@ -11,6 +11,22 @@ def rand_oneHotVector(length, empty_pb=0.3):
     return vec
 
 
+def remove_to_feasible(pop, item_weight, capacities):
+    pop_size = len(pop)
+    item_num = pop[0].shape[0]
+    knapsack_num = pop[0].shape[1]
+    for ind in pop:
+        if exam_feasibility(ind, item_weight, capacities).all():
+            continue
+        contained_items = numpy.where(numpy.sum(ind, axis=1) == 1)[0]
+        random.shuffle(contained_items)
+        for i in contained_items:
+            ind[i] = numpy.zeros(knapsack_num)
+            if exam_feasibility(ind, item_weight, capacities).all():
+                break
+    return pop
+
+
 '''-----------------    CROSSOVERS    -----------------'''
 
 
@@ -21,13 +37,13 @@ def cxUniform_free(ind1, ind2, prob=0.1):
     return ind1, ind2
 
 
-def cxUniform_restrict(ind1, ind2, instance_settings, prob=0.1):
-    item_weight = instance_settings[1]
-    capacities = instance_settings[3]
+def cxUniform_restrict(ind1, ind2, item_weight, capacities, prob=0.1):
+    # item_weight = instance_settings[1]
+    # capacities = instance_settings[3]
     rcapcity1 = capacities - numpy.dot(ind1.T, item_weight)
     rcapcity2 = capacities - numpy.dot(ind2.T, item_weight)
     num_knapsack = len(ind1[0])
-    diff_gen_list = np.where(pp1 != pp2)[0]
+    diff_gen_list = numpy.where(ind1 != ind2)[0]
     random.shuffle(diff_gen_list)
     for i in diff_gen_list:
         if random.random() < prob:
@@ -56,13 +72,13 @@ def random_complete(ind, item_weight, capacities):
     # capacities = instance_settings[3]
     rcapcity = capacities - numpy.dot(ind.T, item_weight)
     # ---------------------------------------------------------
-    mylist = numpy.where(numpy.sum(ind, axis=1) == 0)[0]
-    random.shuffle(mylist)
+    not_contained_items = numpy.where(numpy.sum(ind, axis=1) == 0)[0]
+    random.shuffle(not_contained_items)
     # ---------------------------------------------------------
     num_knapsack = len(ind[0])
     knapsack_list = list(range(num_knapsack))
     random.shuffle(knapsack_list)
-    for i in mylist:
+    for i in not_contained_items:
         for k in knapsack_list:
             if item_weight[i] < rcapcity[k]:
                 ind[i] = numpy.zeros(num_knapsack)
@@ -96,7 +112,7 @@ def mutLocalSearch(ind, item_weight, capacities, toolbox):
     curr_obj = list(map(toolbox.evaluate, [ind]))[0][0]
     item_num = ind.shape[0]
     knapsack_num = ind.shape[1]
-    change_pair = [0] * op.get_combination_num(knapsack_num,2)
+    change_pair = [0] * get_combination_num(knapsack_num, 2)
     kk = 0
     for i in range(knapsack_num):
         for j in range(i, knapsack_num):
@@ -131,8 +147,39 @@ def mutLocalSearch(ind, item_weight, capacities, toolbox):
             rcapcity[n] -= change_n
     return ind
 
+
+def mutRandomRemove(ind, num_of_remove):
+    item_num = ind.shape[0]
+    knapsack_num = ind.shape[1]
+    contained_items = numpy.where(numpy.sum(ind, axis=1) == 1)[0]
+    random.shuffle(contained_items)
+    for i in contained_items[0: min(len(contained_items), num_of_remove)]:
+        ind[i] = numpy.zeros(knapsack_num)
+    return ind
+
+
 # def change_of_objValue(gen_old, gen_new, instance_seetings, objc)
 
+
+def remove_to_feasible(pop, item_weight, capacities):
+    pop_size = len(pop)
+    item_num = pop[0].shape[0]
+    knapsack_num = pop[0].shape[1]
+    for ind in pop:
+        if numpy.array(exam_feasibility(ind, item_weight, capacities)).all():
+            continue
+        contained_items = numpy.where(numpy.sum(ind, axis=1) == 1)[0]
+        random.shuffle(contained_items)
+        for i in contained_items:
+            ind[i] = numpy.zeros(knapsack_num)
+            if numpy.array(exam_feasibility(ind, item_weight, capacities)).all():
+                break
+    return pop
+
+
+
+def get_combination_num(n, m):
+    return math.factorial(n) // (math.factorial(m) * math.factorial(n - m))
 
 def exam_feasibility(individual, item_weight, capacities):
     if (numpy.sum(individual, axis=1) > 1).any():
@@ -149,10 +196,3 @@ def exam_feasibility(individual, item_weight, capacities):
         else:
             result.append(True)
     return result
-
-
-import math
-
-
-def get_combination_num(n, m):
-    return math.factorial(n) // (math.factorial(m) * math.factorial(n - m))

@@ -6,6 +6,7 @@ Created on Fri Nov  4 11:44:15 2022
 """
 
 import math
+
 import numpy as np
 
 ''' Punish '''
@@ -33,14 +34,14 @@ def total_profit(decision_matrix: np.ndarray,  # n*m (m:number of knapsack, n: n
                  item_weight: np.ndarray,  # n,
                  joint_profit: np.ndarray,  # n*n
                  ) -> float:
-    total_profit = 0
+    total_profit_value = 0
     item_value = item_value.reshape(len(item_value), 1)
     for k in range(decision_matrix.shape[1]):
         kth_decision = decision_matrix[:, k]  # 1*n
         indiv_sum = np.dot(kth_decision, item_value)
         joint_sum = np.dot(np.dot(kth_decision, joint_profit), kth_decision.T)
-        total_profit += (indiv_sum + joint_sum)
-    return total_profit
+        total_profit_value += (indiv_sum + joint_sum)
+    return total_profit_value
 
 
 ''' objf 2 '''
@@ -51,12 +52,15 @@ def total_weight(decision_matrix: np.ndarray,  # n*m (m:number of knapsack, n: n
                  item_weight: np.ndarray,  # n,
                  joint_profit: np.ndarray,  # n*n
                  ) -> float:
-    total_weight = 0
+    # total_weight_value = 0
     item_weight = item_weight.reshape(len(item_weight), 1)
-    for k in range(decision_matrix.shape[1]):
-        kth_decision = decision_matrix[:, k]
-        total_weight += np.dot(kth_decision, item_weight)
-    return -total_weight
+    # for k in range(decision_matrix.shape[1]):
+    #     kth_decision = decision_matrix[:, k]
+    #     total_weight_value += np.dot(kth_decision, item_weight)
+    total_weight_value = np.dot(np.sum(decision_matrix, axis=1), item_weight)
+    # if total_weight_value2 != total_weight_value:
+    #     raise RuntimeError('>>>')
+    return -total_weight_value
 
 
 ''' objf 3 '''
@@ -67,14 +71,14 @@ def min_indiv_profit(decision_matrix: np.ndarray,  # n*m (m:number of knapsack, 
                      item_weight: np.ndarray,  # n,
                      joint_profit: np.ndarray,  # n*n
                      ) -> float:
-    min_indiv_profit = math.inf
+    min_indiv_profit_value = math.inf
     item_value = item_value.reshape(len(item_value), 1)
     for k in range(decision_matrix.shape[1]):
         kth_decision = decision_matrix[:, k]  # 1*n
         indiv_sum = np.dot(kth_decision, item_value)
         joint_sum = np.dot(np.dot(kth_decision, joint_profit), kth_decision.T)
-        min_indiv_profit = min(min_indiv_profit, indiv_sum + joint_sum)
-    return min_indiv_profit
+        min_indiv_profit_value = min(min_indiv_profit_value, indiv_sum + joint_sum)
+    return min_indiv_profit_value
 
 
 def objf_base(decision_matrix, objc, instance_settings, punish_factor=-100):
@@ -103,20 +107,22 @@ def objfuncs(decision_matrix: np.ndarray,  # n*m (m:number of knapsack, n: numbe
              item_weight: np.ndarray,  # n,
              joint_profit: np.ndarray,  # n*n
              ) -> (float, float, float):
-    total_profit = 0;
-    total_weight = 0;
-    min_indiv_profit = math.inf
     item_value = item_value.reshape(len(item_value), 1)
     item_weight = item_value.reshape(len(item_weight), 1)
+    total_profit_value = 0;
+    # total_weight = 0;
+    min_indiv_profit_value = math.inf
+    total_weight_value = np.dot(np.sum(decision_matrix, axis=1), item_weight)
     for k in range(decision_matrix.shape[1]):
         kth_decision = decision_matrix[:, k]  # 1*n
         indiv_sum = np.dot(kth_decision, item_value)
         joint_sum = np.dot(np.dot(kth_decision, joint_profit), kth_decision.T)
         profit_sum = indiv_sum + joint_sum
-        total_profit += profit_sum
-        total_weight += np.dot(kth_decision, item_weight)
-        min_indiv_profit = min(min_indiv_profit, profit_sum)
-    return total_profit, -total_weight, min_indiv_profit
+        total_profit_value += profit_sum
+        # total_weight += np.dot(kth_decision, item_weight)
+        min_indiv_profit_value = min(min_indiv_profit_value, profit_sum)
+    return total_profit_value, -total_weight_value, min_indiv_profit_value
+
 
 ##
 def objf_weight(decision_matrix, objc_weight_vector, instance_settings, punish_factor=-100):
