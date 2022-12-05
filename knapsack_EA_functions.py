@@ -1,6 +1,5 @@
 import math
 import multiprocessing
-from scoop import futures
 import random
 from deap import base
 from deap import creator
@@ -39,64 +38,6 @@ def perform_GA_base(objc, instance_settings, evoluion_general_parameters, evolut
 
     ''' initialize population '''
     toolbox = base.Toolbox()
-    # Attribute generator
-    toolbox.register("attr_vector", op.rand_oneHotVector, NUM_KNAPSACK)
-    # Structure initializers
-    toolbox.register("individual", tools.initRepeat, creator.Individual, toolbox.attr_vector, NUM_ITEMS)
-    toolbox.register("population", tools.initRepeat, list, toolbox.individual)
-
-    ''' define select paradigm '''
-    toolbox.register("select", tools.selTournament, tournsize=2)
-
-    # update the toolbox base on specified evolution parameters:
-    popsize, swap_prob, mute_prob, punish_factor = evoluion_general_parameters
-    pop = toolbox.population(n=popsize)
-    toolbox.register("mutate", op.mutUniformVec_free, indpb=mute_prob)  # Vanilla
-    toolbox.register("mate", op.cxUniform_free, prob=swap_prob)  # Vanilla
-
-    # def objf_base(decision_matrix, objc, instance_settings, punish_factor=-100):
-    if type(objc) == int:
-        toolbox.register("evaluate", objf.objf_base, objc=objc, instance_settings=instance_settings,
-                         punish_factor=-punish_factor)
-    elif type(objc) == tuple:
-        objc = numpy.array(objc)
-        toolbox.register("evaluate", objf.objf_weight, objc_weight_vector=objc, instance_settings=instance_settings,
-                         punish_factor=-punish_factor)
-    else:
-        raise Exception('Incorrect input of objc')
-    return GA_core(toolbox, pop, evolution_specify_parameters, PRINT)
-
-def perform_GA_base_mt(objc, instance_settings, evoluion_general_parameters, evolution_specify_parameters,
-                    PRINT=False):
-    # instance_setings should be a tuple contains: {item_value, item_weight, joint_profit, capacities}
-    #                                                           capacities = {capacity1, capacity2, ...}
-    # evolution_general_parameters should be a tuple contains: {popsize, swap_prob, mute_prob, punish_factor}, in which:
-    #    swap_prob  is independent probability for swap at each point in uniform crossover.
-    #    mute_prob  is independent probability for each attribute to be flipped in flip-bit mutation.
-    #    punish_factor is value of punish_factor
-    # evolution_specify_parameters should be a tuple contains: {CXPB, MUTPB},In which:
-    #    CXPB  is the probability with which two individuals
-    #          are crossed
-    #    MUTPB is the probability for mutating an individual
-    #    MAX_GEN is the maximum generation threshold
-    #    STOP_GEN is the threshold of no progress generations
-
-    # update the toolbox base on specified instances:
-    item_value, item_weight, joint_profit, capacities = instance_settings
-    NUM_ITEMS = item_value.shape[0]
-    NUM_KNAPSACK = len(capacities)
-    ''' create individuals '''
-    creator.create("FitnessMax", base.Fitness, weights=(1.0,))
-    creator.create("Individual", numpy.ndarray, fitness=creator.FitnessMax)
-
-    ''' initialize population '''
-    toolbox = base.Toolbox()
-
-    # !!multi-thread!!
-    # toolbox.register("map", futures.map)
-    pool = multiprocessing.Pool()
-    toolbox.register("map", pool.map)
-
     # Attribute generator
     toolbox.register("attr_vector", op.rand_oneHotVector, NUM_KNAPSACK)
     # Structure initializers
@@ -224,54 +165,6 @@ def GA_core(toolbox, pop, evolution_specify_parameters, PRINT, ELITISM = True):
     #   pop: the final round Population and the round
     #   g: the number of generation that reach the optimal
     return best_ind, pop, g, gen_log
-
-
-def perform_GA_tugba_mt(objc, instance_settings, evoluion_general_parameters, evolution_specify_parameters,
-                     PRINT=False):
-    item_value, item_weight, joint_profit, capacities = instance_settings
-    NUM_ITEMS = item_value.shape[0]
-    NUM_KNAPSACK = len(capacities)
-    ''' create individuals '''
-    creator.create("FitnessMax", base.Fitness, weights=(1.0,))
-    creator.create("Individual", numpy.ndarray, fitness=creator.FitnessMax)
-
-    ''' initialize population '''
-    toolbox = base.Toolbox()
-
-    # !!multi-thread!!
-    toolbox.register("map", futures.map)
-
-    # Attribute generator
-    toolbox.register("attr_vector", op.rand_oneHotVector, NUM_KNAPSACK)
-    # Structure initializers
-    toolbox.register("individual", tools.initRepeat, creator.Individual, toolbox.attr_vector, NUM_ITEMS)
-    toolbox.register("population", tools.initRepeat, list, toolbox.individual)
-
-    ''' define select paradigm '''
-    toolbox.register("select", tools.selTournament, tournsize=2)
-
-    # update the toolbox base on specified evolution parameters:
-    popsize, swap_prob, mute_prob, punish_factor = evoluion_general_parameters
-    pop = toolbox.population(n=popsize)
-    toolbox.register("local_search", op.mutLocalSearch, item_weight=item_weight, capacities=capacities, toolbox=toolbox)
-    toolbox.register("random_remove", op.mutRandomRemove, num_of_remove=(NUM_ITEMS//8))
-    toolbox.register("cxuniform_restrict", op.cxUniform_restrict,
-                     item_weight=item_weight, capacities=capacities, prob=swap_prob)
-    toolbox.register("random_complete", op.random_complete, item_weight=item_weight, capacities=capacities)
-
-    # def objf_base(decision_matrix, objc, instance_settings, punish_factor=-100):
-    if type(objc) == int:
-        toolbox.register("evaluate", objf.objf_base, objc=objc, instance_settings=instance_settings,
-                         punish_factor=-punish_factor)
-    elif type(objc) == tuple:
-        objc = numpy.array(objc)
-        toolbox.register("evaluate", objf.objf_weight, objc_weight_vector=objc, instance_settings=instance_settings,
-                         punish_factor=-punish_factor)
-    else:
-        raise Exception('Incorrect input of objc')
-
-    pop = op.remove_to_feasible(pop, item_weight, capacities)
-    return GA_core_tugba(toolbox, pop, evolution_specify_parameters, PRINT)
 
 def perform_GA_tugba(objc, instance_settings, evoluion_general_parameters, evolution_specify_parameters,
                       PRINT=False):
