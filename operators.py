@@ -16,15 +16,41 @@ def remove_to_feasible(pop, item_weight, capacities):
     item_num = pop[0].shape[0]
     knapsack_num = pop[0].shape[1]
     for ind in pop:
-        if exam_feasibility(ind, item_weight, capacities).all():
+        if numpy.array(exam_feasibility(ind, item_weight, capacities)).all():
             continue
         contained_items = numpy.where(numpy.sum(ind, axis=1) == 1)[0]
         random.shuffle(contained_items)
         for i in contained_items:
             ind[i] = numpy.zeros(knapsack_num)
-            if exam_feasibility(ind, item_weight, capacities).all():
+            if numpy.array(exam_feasibility(ind, item_weight, capacities)).all():
                 break
     return pop
+
+
+def remove_to_feasible_ind(ind, item_weight, capacities):
+    knapsack_num = ind.shape[1]
+    exceed_weights = []
+    isfeasible = True
+    for k in range(ind.shape[1]):
+        kth_knapsack = ind[:, k]
+        weight = numpy.dot(kth_knapsack, item_weight)
+        if weight > capacities[k]:
+            isfeasible = False
+        exceed_weights.append(max(0, weight - capacities[k]))
+    exceed_weights = numpy.array(exceed_weights)
+    exceed_knaps = numpy.where(exceed_weights > 0)[0]
+    if isfeasible:
+        return ind
+    contained_items = numpy.where(numpy.sum(ind, axis=1) == 1)[0]
+    random.shuffle(contained_items)
+    for i in contained_items:
+        k = numpy.where(ind[i])[0][0]
+        if k in exceed_knaps:
+            exceed_weights[k] = max(0, exceed_weights[k] - item_weight[i])
+            ind[i] = numpy.zeros(knapsack_num)
+        if sum(exceed_weights) == 0:
+            break
+    return ind
 
 
 '''-----------------    CROSSOVERS    -----------------'''
@@ -34,6 +60,20 @@ def cxUniform_free(ind1, ind2, prob=0.1):
     for i in range(len(ind1)):
         if random.random() < prob:
             ind1[i], ind2[i] = ind2[i].copy(), ind1[i].copy()
+    return ind1, ind2
+
+
+def cxSinglePointCopy(ind1, ind2):
+    size = len(ind1)
+    cxpoint = random.randint(1, size)
+    ind1[0:cxpoint], ind2[cxpoint:] \
+        = ind2[:cxpoint].copy(), ind1[cxpoint:].copy()
+    return ind1, ind2
+
+
+def cxDoublePointCopy(ind1, ind2):
+    ind1, ind2 = cxSinglePointCopy(ind1, ind2)
+    ind1, ind2 = cxSinglePointCopy(ind1, ind2)
     return ind1, ind2
 
 
@@ -100,6 +140,15 @@ def mutUniformVec_free(individual, indpb):
     return individual,
 
 
+# def mutUniformVec_free(individual, indpb):
+#     item_num = individual.shape[0]
+#     knapsack_num = individual.shape[1]
+#     for i in range(item_num):
+#         if random.random() < indpb:
+#             individual[i] = rand_oneHotVector(knapsack_num)
+#     return individual,
+
+
 '''
 Mutation 1, improves on the solution though local exchanges. 
 First, it considers all pairs of items assigned to different knapsacks and, 
@@ -107,7 +156,8 @@ if possible and if the total profit increases, interchanges them.
 '''
 
 
-def mutLocalSearch(ind, item_weight, capacities, toolbox):
+def mutLocalSearch_old(ind, item_weight, capacities, toolbox):
+    # coc = 0
     rcapcity = capacities - numpy.dot(ind.T, item_weight)
     curr_obj = list(map(toolbox.evaluate, [ind]))[0][0]
     item_num = ind.shape[0]
@@ -139,12 +189,52 @@ def mutLocalSearch(ind, item_weight, capacities, toolbox):
             # Now try exchange, see if it increases the ObjValue
             ind[i, m], ind[i, n] = ind[i, n], ind[i, m]
             new_obj = list(map(toolbox.evaluate, [ind]))[0][0]
+            # coc += 1
             if curr_obj > new_obj:  # did not increase the ObjValue, change back
                 ind[i, m], ind[i, n] = ind[i, n], ind[i, m]
                 continue
             curr_obj = new_obj
             rcapcity[m] -= change_m
             rcapcity[n] -= change_n
+    # print(coc)
+    return ind
+
+
+def mutLocalSearch(ind, item_weight, capacities, toolbox):
+    # coc = 0
+    rcapcity = capacities - numpy.dot(ind.T, item_weight)
+    curr_obj = list(map(toolbox.evaluate, [ind]))[0][0]
+    item_num = ind.shape[0]
+    knapsack_num = ind.shape[1]
+    # If all are zero, no need to exchange
+    for i in range(item_num):
+        loc_of_1 = numpy.where(ind[i] == 1)[0]
+        if loc_of_1.size == 0:
+            continue
+        n = loc_of_1[0]
+        for m in range(knapsack_num):
+            if m == n:
+                continue
+            # If it makes the instance infeasible no need to exchange
+            change_m = (- ind[i, m] + ind[i, n]) * item_weight[i]
+            change_n = (- ind[i, n] + ind[i, m]) * item_weight[i]
+            if rcapcity[m] + change_m < 0:
+                continue
+            if rcapcity[n] + change_n < 0:
+                continue
+            # if it not increases the joint_value, (maybe) no need to exchange
+            # ....
+            # Now try exchange, see if it increases the ObjValue
+            ind[i, m], ind[i, n] = ind[i, n], ind[i, m]
+            new_obj = list(map(toolbox.evaluate, [ind]))[0][0]
+            # coc += 1
+            if curr_obj > new_obj:  # did not increase the ObjValue, change back
+                ind[i, m], ind[i, n] = ind[i, n], ind[i, m]
+                continue
+            curr_obj = new_obj
+            rcapcity[m] -= change_m
+            rcapcity[n] -= change_n
+    # print(coc)
     return ind
 
 
@@ -161,25 +251,9 @@ def mutRandomRemove(ind, num_of_remove):
 # def change_of_objValue(gen_old, gen_new, instance_seetings, objc)
 
 
-def remove_to_feasible(pop, item_weight, capacities):
-    pop_size = len(pop)
-    item_num = pop[0].shape[0]
-    knapsack_num = pop[0].shape[1]
-    for ind in pop:
-        if numpy.array(exam_feasibility(ind, item_weight, capacities)).all():
-            continue
-        contained_items = numpy.where(numpy.sum(ind, axis=1) == 1)[0]
-        random.shuffle(contained_items)
-        for i in contained_items:
-            ind[i] = numpy.zeros(knapsack_num)
-            if numpy.array(exam_feasibility(ind, item_weight, capacities)).all():
-                break
-    return pop
-
-
-
 def get_combination_num(n, m):
     return math.factorial(n) // (math.factorial(m) * math.factorial(n - m))
+
 
 def exam_feasibility(individual, item_weight, capacities):
     if (numpy.sum(individual, axis=1) > 1).any():
@@ -188,7 +262,6 @@ def exam_feasibility(individual, item_weight, capacities):
     # item_weight = instance_settings[1]
     # capacities = instance_settings[3]
     for k in range(individual.shape[1]):
-
         kth_knapsack = individual[:, k]
         weight = numpy.dot(kth_knapsack, item_weight)
         if weight > capacities[k]:
@@ -196,3 +269,16 @@ def exam_feasibility(individual, item_weight, capacities):
         else:
             result.append(True)
     return result
+
+
+def exam_feasibility_fast(individual, item_weight, capacities):
+    # if (numpy.sum(individual, axis=1) > 1).any():
+    #     raise RuntimeError('Serious Issue: Item in Multi Knapsack')
+    # item_weight = instance_settings[1]
+    # capacities = instance_settings[3]
+    for k in range(individual.shape[1]):
+        kth_knapsack = individual[:, k]
+        weight = numpy.dot(kth_knapsack, item_weight)
+        if weight > capacities[k]:
+            return False
+    return True

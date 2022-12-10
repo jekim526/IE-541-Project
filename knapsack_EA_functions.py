@@ -11,7 +11,13 @@ sys.path.append("..")
 import objfuncs as objf
 import operators as op
 
-
+""" 
+return
+best_ind: the best solution find so far 
+pop: the final round Population and the round
+g: the number of generation that reach the optimal
+gen_log: the objective value of best individual in each generation
+"""
 
 def perform_GA_base(objc, instance_settings, evoluion_general_parameters, evolution_specify_parameters,
                     PRINT=False):
@@ -66,7 +72,6 @@ def perform_GA_base(objc, instance_settings, evoluion_general_parameters, evolut
     return GA_core(toolbox, pop, evolution_specify_parameters, PRINT)
 
 def GA_core(toolbox, pop, evolution_specify_parameters, PRINT, ELITISM = True):
-
     # update the toolbox base on specified evolution parameters:
     CXPB, MUTPB, MAX_GEN, STOP_GEN = evolution_specify_parameters
     # --------- begin the evolution ----------
@@ -86,7 +91,7 @@ def GA_core(toolbox, pop, evolution_specify_parameters, PRINT, ELITISM = True):
     g_hold = 0
     best_fit_sofar = max(fits)
     gen_log = []
-
+    count = 0
     # Begin the evolution
     while g_hold < STOP_GEN and g < MAX_GEN:
         # stop at the stable best population or stop at the first best individual
@@ -98,6 +103,7 @@ def GA_core(toolbox, pop, evolution_specify_parameters, PRINT, ELITISM = True):
             g_hold = 0
         # A new generation
         g += 1
+        count += 1
         if PRINT:
             print("-- Generation %i --" % g)
 
@@ -106,7 +112,10 @@ def GA_core(toolbox, pop, evolution_specify_parameters, PRINT, ELITISM = True):
         if ELITISM:
             elite_num = 5
             elites = tools.selBest(pop, elite_num).copy()
-        gen_log.append(max(fits))
+        count += 1
+        if (count == 10):
+            gen_log.append(max(fits))
+            count = 0
 
         # Select the next generation individuals
         offspring = toolbox.select(pop, len(pop) - elite_num)
@@ -194,6 +203,8 @@ def perform_GA_tugba(objc, instance_settings, evoluion_general_parameters, evolu
     toolbox.register("cxuniform_restrict", op.cxUniform_restrict,
                      item_weight=item_weight, capacities=capacities, prob=swap_prob)
     toolbox.register("random_complete", op.random_complete, item_weight=item_weight, capacities=capacities)
+    toolbox.register("mutate", op.mutUniformVec_free, indpb=mute_prob)  # Vanilla
+    toolbox.register("reduce2feasible", op.remove_to_feasible_ind, item_weight=item_weight, capacities=capacities)
 
     # def objf_base(decision_matrix, objc, instance_settings, punish_factor=-100):
     if type(objc) == int:
@@ -210,7 +221,9 @@ def perform_GA_tugba(objc, instance_settings, evoluion_general_parameters, evolu
     return GA_core_tugba(toolbox, pop, evolution_specify_parameters, PRINT)
 
 
+
 def GA_core_tugba(toolbox, pop, evolution_specify_parameters, PRINT, ELITISM = True):
+
     # update the toolbox base on specified evolution parameters:
     CXPB, MUTPB, MAX_GEN, STOP_GEN = evolution_specify_parameters
     # --------- begin the evolution ----------
@@ -230,8 +243,6 @@ def GA_core_tugba(toolbox, pop, evolution_specify_parameters, PRINT, ELITISM = T
     g_hold = 0
     best_fit_sofar = max(fits)
     gen_log = []
-
-
 # Begin the evolution
     while g_hold < STOP_GEN and g < MAX_GEN:
         # stop at the stable best population or stop at the first best individual
@@ -243,11 +254,7 @@ def GA_core_tugba(toolbox, pop, evolution_specify_parameters, PRINT, ELITISM = T
             g_hold = 0
         # A new generation
         g += 1
-        if PRINT:
-            print("-- Generation %i --" % g)
-
         gen_log.append(max(fits))
-
         # elitism preserve
         elite_num = 0
         if ELITISM:
@@ -301,10 +308,8 @@ def GA_core_tugba(toolbox, pop, evolution_specify_parameters, PRINT, ELITISM = T
         pop[:] = offspring
         if ELITISM:
             pop.extend(elites)
-
         # Gather all the fitnesses in one list and print the stats
         fits = [ind.fitness.values[0] for ind in pop]
-
         if PRINT:
             length = len(pop)
             mean = sum(fits) / length
@@ -314,13 +319,10 @@ def GA_core_tugba(toolbox, pop, evolution_specify_parameters, PRINT, ELITISM = T
             print("  Max %s" % max(fits))
             print("  Avg %s" % mean)
             print("  Std %s" % std)
-
     best_ind = tools.selBest(pop, 1)[0]
-    if PRINT:
-        print("-- End of (successful) evolution --")
-        print("Best individual is %s, %s" % (best_ind, best_ind.fitness.values))
+    # if PRINT:
+    #     print("-- End of (successful) evolution --")
+    #     print("Best individual is %s, %s" % (best_ind, best_ind.fitness.values))
 
-    # return
-    #   pop: the final round Population and the round
-    #   g: the number of generation that reach the optimal
+
     return best_ind, pop, g, gen_log
