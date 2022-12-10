@@ -121,7 +121,28 @@ def objfuncs(decision_matrix: np.ndarray,  # n*m (m:number of knapsack, n: numbe
         total_profit_value += profit_sum
         # total_weight += np.dot(kth_decision, item_weight)
         min_indiv_profit_value = min(min_indiv_profit_value, profit_sum)
-    return total_profit_value, -total_weight_value, min_indiv_profit_value
+    return total_profit_value[0], -total_weight_value, min_indiv_profit_value[0]
+
+def objfuncs_fast(decision_matrix: np.ndarray,  # n*m (m:number of knapsack, n: number of items)
+             item_value: np.ndarray,  # n,
+             item_weight: np.ndarray,  # n,
+             joint_profit: np.ndarray,  # n*n
+             ) -> (float, float, float):
+    # item_value = item_value.reshape(len(item_value), 1)
+    # item_weight = item_value.reshape(len(item_weight), 1)
+    total_profit_value = 0;
+    # total_weight = 0;
+    min_indiv_profit_value = math.inf
+    total_weight_value = np.dot(np.sum(decision_matrix, axis=1), item_weight)[0]
+    for k in range(decision_matrix.shape[1]):
+        kth_decision = decision_matrix[:, k]  # 1*n
+        indiv_sum = np.dot(kth_decision, item_value)
+        joint_sum = np.dot(np.dot(kth_decision, joint_profit), kth_decision.T)
+        profit_sum = indiv_sum + joint_sum
+        total_profit_value += profit_sum
+        # total_weight += np.dot(kth_decision, item_weight)
+        min_indiv_profit_value = min(min_indiv_profit_value, profit_sum)
+    return total_profit_value[0], -total_weight_value, min_indiv_profit_value[0]
 
 
 ##

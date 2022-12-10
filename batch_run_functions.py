@@ -179,7 +179,8 @@ def run_compare_GA_rerun(urls, instances, GA_type, objs, knapsack_nums, t_gen, b
         result_writer2(ins, running_results)
 
 
-def run_random_shit(instance_dir, sample_number):
+def run_random_shit_old(instance_dir, sample_number):
+    empty_pb = 0
     instances = os.listdir(instance_dir)
     start_tt = time.time()
     knapsack_nums = [3, 5, 10]
@@ -196,19 +197,19 @@ def run_random_shit(instance_dir, sample_number):
         for knapsack_num in knapsack_nums:
             print("start run knapsack: ", knapsack_num)
             for i in range(sample_number):
-                # if knapsack_num == 3:
-                #     empty_pb = 0.15
-                # elif knapsack_num == 5:
-                #     empty_pb = 0.3
-                # elif knapsack_num == 10:
-                #     empty_pb = 0.35
+                if knapsack_num == 3:
+                    empty_pb = 0.25
+                elif knapsack_num == 5:
+                    empty_pb = 3 / 8
+                elif knapsack_num == 10:
+                    empty_pb = 3 / 8
                 capacity = (
                                    sum(item_weight) / knapsack_num) * 0.8  # 80% of the sum of all item weights divided by the number of knapsacks
                 capacities = (capacity,) * knapsack_num
-                instance_settings = (item_value, item_weight, joint_profit, capacities)
                 ind = np.zeros([item_num, knapsack_num])
                 for i in range(item_num):
-                    ind[i] = op.rand_oneHotVector(knapsack_num, empty_pb=0.2)
+                    ind[i] = op.rand_oneHotVector(knapsack_num, empty_pb)
+                # print(np.sum(ind)/ind.shape[0])
                 # def objfuncs(decision_matrix: np.ndarray,  # n*m (m:number of knapsack, n: number of items)
                 #              item_value: np.ndarray,  # n,
                 #              item_weight: np.ndarray,  # n,
@@ -218,8 +219,63 @@ def run_random_shit(instance_dir, sample_number):
                                                                                                item_weight,
                                                                                                joint_profit)
                 feasibility = op.exam_feasibility_fast(ind, item_weight, capacities)
-                random_results[count] = (total_profit_value, -total_weight_value, min_indiv_profit_value, feasibility)
+                random_results[count] = [total_profit_value, -total_weight_value, min_indiv_profit_value, feasibility]
                 count += 1
+        df_random_results = pd.DataFrame(random_results)
+        df_random_results.to_csv("RandomPoint_" + ins[:-4] + ".csv")
+        print(" + output instance: ", ins)
+    end_tt = time.time()
+    print(end_tt - start_tt)
+
+
+def run_random_shit(instance_dir, sample_number):
+    empty_pb = 0
+    instances = os.listdir(instance_dir)
+    start_tt = time.time()
+    knapsack_nums = [3, 5, 10]
+    # sample_number = 500000
+    for ins in instances:
+        print(" + start run instance: ", ins)
+        count = 0
+        path = instance_dir + ins
+        start_tt = time.time()
+        # 'https://raw.githubusercontent.com/jekim526/IE-541-Project/main/data/Z_r_100_25_1.csv'
+        item_value, item_weight, joint_profit, penalty_factor = warp_getdata(path)
+        item_num = item_weight.size
+        item_value = item_value.reshape(len(item_value), 1)
+        item_weight = item_value.reshape(len(item_weight), 1)
+        random_results = [0] * sample_number * len(knapsack_nums)
+        for knapsack_num in knapsack_nums:
+            if knapsack_num == 3:
+                empty_pb = 0.25
+            elif knapsack_num == 5:
+                empty_pb = 3 / 8
+            elif knapsack_num == 10:
+                empty_pb = 3 / 8
+            start_tk = time.time()
+            capacity = (sum(item_weight) / knapsack_num) * 0.8  # 80% of the sum of all item weights
+            capacities = (capacity,) * knapsack_num
+            infeasible_tuple = (knapsack_num, -1, -1, -1, False)
+            print("start run knapsack: ", knapsack_num)
+            # nums_of_picked_item = np.random.standard_normal(sample_number)*(item_num/25)+(item_num*(1-empty_pb))
+            nums_of_picked_item = np.random.binomial(item_num, p=(1 - empty_pb), size=sample_number)
+            for i in range(sample_number):
+                ind = np.zeros([item_num, knapsack_num])
+                item_index = np.random.choice(item_num, size=int(nums_of_picked_item[i]), replace=False)
+                knapsack_index = np.random.randint(knapsack_num, size=int(nums_of_picked_item[i]))
+                ind[item_index, knapsack_index] = 1
+                feasibility = op.exam_feasibility_fast(ind, item_weight, capacities)
+                if feasibility:
+                    total_profit_value, total_weight_value, min_indiv_profit_value = objf.objfuncs_fast(ind, item_value,
+                                                                                                        item_weight,
+                                                                                                        joint_profit)
+                    random_results[count] = (
+                        knapsack_num, total_profit_value, -total_weight_value, min_indiv_profit_value, feasibility)
+                else:
+                    random_results[count] = infeasible_tuple
+                count += 1
+                end_tk = time.time()
+            print("finished ", knapsack_num, "th knapsack, time: ", end_tk - start_tk)
         df_random_results = pd.DataFrame(random_results)
         df_random_results.to_csv("RandomPoint_" + ins[:-4] + ".csv")
         print(" + output instance: ", ins)
