@@ -47,7 +47,7 @@ def warp_getdata(url):
     return item_value, item_weight, joint_profit, penalty_factor
 
 
-def result_writer(instance_name, running_results):
+def result_writer_bestInd(instance_name, running_results):
     # output the meta information (objfuction, instance_name, num_of_knapsack) and the solution (the best individual)
     instance_meta_information = []
     decision_matrices = []
@@ -71,10 +71,10 @@ def result_writer(instance_name, running_results):
     # print(df_meta_info)
 
     df_meta_info = df_meta_info.append(df_decision_matrices.T, ignore_index=True)
-    df_meta_info.to_csv("compareGA_" + instance_name + ".csv")
+    df_meta_info.to_csv("compareGA_bestInd_" + instance_name + ".csv")
 
 
-def result_writer2(instance_name, running_results):
+def result_writer_genlog(instance_name, running_results):
     # output the meta information (objfuction, instance_name, num_of_knapsack) and the objf in each generation
     instance_meta_information = []
     log = []
@@ -91,13 +91,30 @@ def result_writer2(instance_name, running_results):
     # print(df_meta_info)
 
     df_meta_info = df_meta_info.append(df_log.T, ignore_index=True)
-    df_meta_info.to_csv("compareGA_" + instance_name + ".csv")
+    df_meta_info.to_csv("outputs/gen_log/compareGA_genlog_" + instance_name + ".csv")
 
 
-def run_compare_GA(urls, instances):
+def result_writer_resultOnly(instance_name, running_results):
+    # output the meta information (objfuction, instance_name, num_of_knapsack) and the objf in each generation
+    instance_meta_information = []
+    for case in running_results:
+        GA_type, num_of_knapsack, objc, objfValue, time_cost, num_gen = case
+        case_meta = (instance_name, objc, num_of_knapsack, objfValue, GA_type, time_cost, num_gen)
+        instance_meta_information.append(case_meta)
+    # df_decision_matrices = df_decision_matrices.T
+    df_meta_info = pd.DataFrame(instance_meta_information)
+    df_meta_info = df_meta_info.T
+    # print(df_decision_matrices)
+    # print(df_meta_info)
+    df_meta_info.to_csv("outputs/compareGA_resultOnly_" + instance_name + ".csv")
+
+
+def run_compare_GA_bestInd(urls, instances):
+    start_tt = time.time()
     print("running begins!...")
     for i in range(len(urls)):
-        start_tt = time.time()
+        start_it = time.time()
+        print("Running instance:", instances[i], ", Running time: ", start_tt - start_it, "s")
         ins = instances[i]
         url = urls[i]
         debug_result = []
@@ -106,8 +123,7 @@ def run_compare_GA(urls, instances):
         item_value, item_weight, joint_profit, penalty_factor = warp_getdata(url)
         running_results = []
         for num_of_knapsack in [3, 5, 10]:
-            capacity = (
-                               sum(item_weight) / num_of_knapsack) * 0.8  # 80% of the sum of all item weights divided by the number of knapsacks
+            capacity = (sum(item_weight) / num_of_knapsack) * 0.8  # 80% of the sum of all item weights
             capacities = (capacity,) * num_of_knapsack
             instance_settings = (item_value, item_weight, joint_profit, capacities)
             for GA_type in ['base', 'tugba']:
@@ -119,7 +135,7 @@ def run_compare_GA(urls, instances):
                 else:
                     GA_solver = ea.perform_GA_tugba
                     evolution_general_parameters = (50, 0.2, 0.02, penalty_factor)
-                    evolution_specify_parameters = (0.7, 0.3, 500, 20000)
+                    evolution_specify_parameters = (0.7, 0.1, 500, 20000)
                     # evolution_specify_parameters = (0.7, 0.3, 5, 20000)
                 for objc in [1, 3]:
                     time_start = time.time()
@@ -127,18 +143,21 @@ def run_compare_GA(urls, instances):
                                                         evolution_specify_parameters)
                     time_end = time.time()
                     time_cost = time_end - time_start
-                    objfValue = best_ind.fitness.values
+                    objfValue = best_ind.fitness.values[0]
                     case = [GA_type, objc, num_of_knapsack, objfValue, time_cost, num_gen, best_ind]
                     running_results.append(case)
-        end_tt = time.time()
-        print("the ", i, "th instance done. Time:", end_tt - start_tt, "s")
-        result_writer(ins, running_results)
+        end_it = time.time()
+        print("The ", i, "th instance done. percentage of finish:", i / len(urls), " Time spend:", end_it - start_it,
+              "s")
+        result_writer_bestInd(ins, running_results)
 
 
-def run_compare_GA_rerun(urls, instances, GA_type, objs, knapsack_nums, t_gen, b_gen, tail):
-    print("running begins!...")
+def run_compare_GA_resultOnly(urls, instances, GA_types, objs, knapsack_nums, t_gen, b_gen, tail=""):
+    start_tt = time.time()
+    print(" + running begins!...")
     for i in range(len(urls)):
-        start_tt = time.time()
+        start_it = time.time()
+        print(">> Running instance:", instances[i], ", Running time: ", start_it - start_tt, "s")
         ins = instances[i]
         url = urls[i]
         debug_result = []
@@ -147,12 +166,58 @@ def run_compare_GA_rerun(urls, instances, GA_type, objs, knapsack_nums, t_gen, b
         item_value, item_weight, joint_profit, penalty_factor = warp_getdata(url)
         running_results = []
         for num_of_knapsack in knapsack_nums:
-            capacity = (
-                               sum(item_weight) / num_of_knapsack) * 0.8  # 80% of the sum of all item weights divided by the number of knapsacks
+            capacity = (sum(item_weight) / num_of_knapsack) * 0.8  # 80% of the sum of all item weights
             capacities = (capacity,) * num_of_knapsack
             instance_settings = (item_value, item_weight, joint_profit, capacities)
             # for GA_type in ['base', 'tugba']:
-            for GA_type in GA_type:
+            for GA_type in GA_types:
+                if GA_type == 'base':
+                    GA_solver = ea.perform_GA_base
+                    evolution_general_parameters = (100, 0.2, 0.02, penalty_factor)
+                    evolution_specify_parameters = (0.7, 0.5, b_gen, 20000)
+                    # evolution_specify_parameters = (0.7, 0.5, 50, 20000)
+                else:
+                    GA_solver = ea.perform_GA_tugba
+                    evolution_general_parameters = (50, 0.2, 0.02, penalty_factor)
+                    evolution_specify_parameters = (0.7, 0.3, t_gen, 20000)
+                    # evolution_specify_parameters = (0.7, 0.3, 5, 20000)
+                for objc in objs:
+                    time_start = time.time()
+                    best_ind, _, num_gen, _ = GA_solver(objc, instance_settings, evolution_general_parameters,
+                                                              evolution_specify_parameters)
+                    time_end = time.time()
+                    time_cost = time_end - time_start
+                    objfValue = best_ind.fitness.values[0]
+                    case = [GA_type, objc, num_of_knapsack, objfValue, time_cost, num_gen]
+                    running_results.append(case)
+        end_it = time.time()
+        ins = ins[:-4]
+        ins = ins + tail
+        print("<< The ", i, "th instance done. percentage of finish:", ((i+1)  / len(urls))*100, "%, Time spend:", end_it - start_it,
+              "s")
+        result_writer_resultOnly(ins, running_results)
+    end_tt = time.time()
+    print(" + running end!... Total time cost:", end_tt - start_tt, "s")
+
+def run_compare_GA_genlog(urls, instances, GA_types, objs, knapsack_nums, t_gen, b_gen, tail=""):
+    start_tt = time.time()
+    print(" + running begins!...")
+    for i in range(len(urls)):
+        start_it = time.time()
+        print(">> Running instance:", instances[i], ", Running time: ", start_it - start_tt, "s")
+        ins = instances[i]
+        url = urls[i]
+        debug_result = []
+        # 'https://raw.githubusercontent.com/jekim526/IE-541-Project/main/data/Z_r_100_25_1.csv'
+        print(url)
+        item_value, item_weight, joint_profit, penalty_factor = warp_getdata(url)
+        running_results = []
+        for num_of_knapsack in knapsack_nums:
+            capacity = (sum(item_weight) / num_of_knapsack) * 0.8  # 80% of the sum of all item weights
+            capacities = (capacity,) * num_of_knapsack
+            instance_settings = (item_value, item_weight, joint_profit, capacities)
+            # for GA_type in ['base', 'tugba']:
+            for GA_type in GA_types:
                 if GA_type == 'base':
                     GA_solver = ea.perform_GA_base
                     evolution_general_parameters = (100, 0.2, 0.02, penalty_factor)
@@ -166,18 +231,21 @@ def run_compare_GA_rerun(urls, instances, GA_type, objs, knapsack_nums, t_gen, b
                 for objc in objs:
                     time_start = time.time()
                     best_ind, _, num_gen, gen_log = GA_solver(objc, instance_settings, evolution_general_parameters,
-                                                              evolution_specify_parameters)
+                                                        evolution_specify_parameters)
                     time_end = time.time()
                     time_cost = time_end - time_start
-                    objfValue = best_ind.fitness.values
+                    objfValue = best_ind.fitness.values[0]
                     case = [GA_type, objc, num_of_knapsack, objfValue, time_cost, num_gen, gen_log]
+                    # GA_type, num_of_knapsack, objc, objfValue, time_cost, num_gen, gen_log
                     running_results.append(case)
-        end_tt = time.time()
-        print("the ", i, "th instance done. Time:", end_tt - start_tt, "s")
+        end_it = time.time()
         ins = ins[:-4]
         ins = ins + tail
-        result_writer2(ins, running_results)
-
+        print("<< The ", i, "th instance done. percentage of finish:", ((i+1) / len(urls))*100, "%, Time spend:", end_it - start_it,
+              "s")
+        result_writer_genlog(ins, running_results)
+    end_tt = time.time()
+    print(" + running end!... Total time cost:", end_tt - start_tt, "s")
 
 def run_random_shit_old(instance_dir, sample_number):
     empty_pb = 0

@@ -151,4 +151,5 @@ def objf_weight(decision_matrix, objc_weight_vector, instance_settings, punish_f
     obj_value_vector = np.array(objfuncs(decision_matrix, item_value, item_weight, joint_profit))
     obj_value = np.dot(np.squeeze(obj_value_vector), objc_weight_vector)
     punish_value = punish(decision_matrix, item_weight, capacities, punish_factor)
-    return [obj_value + punish_value]
+    # return [obj_value + punish_value]
+    return obj_value + punish_value

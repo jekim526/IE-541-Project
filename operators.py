@@ -137,7 +137,7 @@ def mutUniformVec_free(individual, indpb):
     for i in range(item_num):
         if random.random() < indpb:
             individual[i] = rand_oneHotVector(knapsack_num)
-    return individual,
+    return individual
 
 
 # def mutUniformVec_free(individual, indpb):

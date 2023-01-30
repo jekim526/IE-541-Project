@@ -13,7 +13,7 @@ sys.path.append("..")
 import batch_run_functions as batch
 
 """  Settings """
-instance_dir = "data_5divide/300s/"
+instance_dir = "data_limit_test_run/1/"
 instances = os.listdir(instance_dir)
 urls = []
 for i in range(len(instances)):  # Loop for getting URLs
@@ -23,11 +23,13 @@ for i in range(len(instances)):  # Loop for getting URLs
 
 # run_compare_GA_resultOnly(urls, instances, GA_type, objs, knapsack_nums, t_gen, b_gen, tail=""):
 GA_types = ['base', 'tugba']
-objs = [1, 3, (0.5, 0.5, 0), (0.5, 0, 0.5), (0, 0.5, 0.5)]
+objs = [1, 3]
 knapsack_nums = [3, 5, 10]
-t_gen = 50
-b_gen = 500
+#t_gen = 5
+t_gen = 1000
+#b_gen = 50
+b_gen = 10000
 
 """ running """
-batch.run_compare_GA_resultOnly(urls, instances, GA_types, objs, knapsack_nums, t_gen, b_gen)
+batch.run_compare_GA_genlog(urls, instances, GA_types, objs, knapsack_nums, t_gen, b_gen)
 print("I am done")
